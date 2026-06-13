@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Acertijos Mat </title>
+    <title>Acertijos</title>
     <style>
         :root {
             --amarillo: #FFD166;
@@ -46,12 +46,12 @@
             position: relative;
         }
 
-        /* Pantallas con Animación de Entrada */
+        /* Pantallas con Transición Fluida */
         .pantalla {
             display: none;
             opacity: 0;
             transform: translateX(50px);
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .pantalla.activa {
@@ -77,6 +77,7 @@
             font-weight: 600;
         }
 
+        /* Marcadores de Estado */
         .marcador-contenedor {
             display: flex;
             justify-content: space-between;
@@ -94,6 +95,7 @@
             animation: pulso 0.4s infinite alternate;
         }
 
+        /* Avatar del Personaje */
         .avatar-contenedor {
             width: 130px;
             height: 130px;
@@ -117,6 +119,7 @@
             max-width: 90%;
             border: 3px solid #ddd;
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            min-height: 54px;
         }
 
         .cuadro-acertijo {
@@ -131,6 +134,7 @@
             box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
         }
 
+        /* Cuadrícula Adaptativa de Opciones */
         .opciones-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -151,12 +155,19 @@
             width: 100%;
         }
 
-        .btn:active {
+        .btn:active:not(:disabled) {
             transform: translateY(6px);
             box-shadow: none;
         }
 
-        .btn:hover {
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn:hover:not(:disabled) {
             filter: brightness(1.1);
         }
 
@@ -185,6 +196,7 @@
             border-bottom: 2px solid #eee;
         }
 
+        /* Definición de Keyframes */
         @keyframes pulso {
             from { transform: scale(1); }
             to { transform: scale(1.06); }
@@ -211,17 +223,17 @@
         
         <!-- PANTALLA INICIO -->
         <div id="pantalla-inicio" class="pantalla activa">
-            <h1>Acertijos Mat</h1>
-            <p>¡Resuelve los 8 acertijos del laberinto! Los aciertos suman puntos y los fallos restan. ¡Cuidado con el reloj!</p>
-            <div style="font-size: 6rem; margin: 15px 0;">🧩🧙‍♂️🏰</div>
+            <h1>Acertijos</h1>
+            <p>¡Resuelve los 10 acertijos matemáticos antes de que se agote el tiempo! Si fallas, puedes volver a intentarlo en la misma pregunta.</p>
+            <div style="font-size: 6rem; margin: 15px 0;">🧩🧙‍♂️ Castle</div>
             <button class="btn btn-inicio" onclick="iniciarJuego()">¡COMENZAR DESAFÍO!</button>
         </div>
 
         <!-- PANTALLA JUEGO -->
         <div id="pantalla-juego" class="pantalla">
             <div class="marcador-contenedor">
-                <div>Reto: <span id="ronda-actual">1</span>/8</div>
-                <div>Nota: <span id="puntos">0</span>%</div>
+                <div>Reto: <span id="ronda-actual">1</span>/10</div>
+                <div>Aciertos: <span id="puntos">0</span></div>
                 <div id="cronometro-box">Tiempo: <span id="tiempo">30</span>s</div>
             </div>
 
@@ -253,7 +265,7 @@
                 <tbody>
                     <tr>
                         <td style="text-align: left;">Acertijos Totales</td>
-                        <td style="text-align: right;">8</td>
+                        <td style="text-align: right;">10</td>
                     </tr>
                     <tr>
                         <td style="text-align: left;">Respuestas Correctas</td>
@@ -276,27 +288,34 @@
     </div>
 
     <script>
-        // Variables de estado del juego
-        let puntosBase = 0;
+        // Variables globales del sistema
         let tiempoRestante = 30;
         let temporizador = null;
         let respuestaCorrecta = 0;
         let correctasContadas = 0;
         let incorrectasContadas = 0;
-        let totalPreguntas = 0;
-        const maxPreguntas = 8;
+        let indicePreguntaActual = 0; 
+        const maxPreguntas = 10;
         let acertijosActuales = [];
+        let yaFalloPreguntaActual = false; 
+        let idBloqueoTimeout = null;
 
-        // Banco de los 8 acertijos con sus respectivos avatares y colores temáticos
+        // Banco de 14 acertijos dinámicos con avatares
         const bancoAcertijos = [
-            { txt: "Un mago plantó un árbol con 45 manzanas rojas. Al día siguiente, usó un hechizo y aparecieron 38 manzanas verdes más. ¿Cuántas manzanas tiene en total?", ans: 83, op: '+', avatar: '🧙‍♂️', color: 'var(--azul)' },
-            { txt: "En una partida, Lucas recolectó 67 gemas azules en el primer nivel y 55 gemas amarillas en el segundo. ¿Cuántas gemas juntó al terminar?", ans: 122, op: '+', avatar: '🧝‍♂️', color: 'var(--amarillo)' },
-            { txt: "Sofía infló 92 globos para la escuela. Sopló un viento muy fuerte y se volaron 34 globos. ¿Cuántos globos le quedaron para decorar?", ans: 58, op: '-', avatar: '🦄', color: 'var(--rosa)' },
-            { txt: "Un cofre pirata tenía 75 monedas de chocolate. Si los tripulantes se comieron 47 chocolates en el viaje, ¿cuántos chocolates quedan?", ans: 28, op: '-', avatar: '🏴‍☠️', color: 'var(--rojo)' },
-            { txt: "El panadero preparó 6 cajas de donas mágicas. Si cada caja contiene exactamente 8 donas, ¿cuántas donas tiene listas en total?", ans: 48, op: '*', avatar: '🤖', color: 'var(--naranja)' },
-            { txt: "En un pequeño corral de la granja hay exactamente 9 vacas comiendo pasto. Sin contar personas, ¿cuántas patas de vaca hay en total?", ans: 36, op: '*', avatar: '🤠', color: 'var(--verde)' },
-            { txt: "Diego tiene un frasco con 42 canicas y quiere repartirlas en partes iguales entre sus 6 mejores amigos. ¿Cuántas canicas recibe cada uno?", ans: 7, op: '/', avatar: '🧑‍🤝‍🧑', color: 'var(--azul)' },
-            { txt: "Valentina tiene 54 soldados de plástico y quiere acomodarlos en filas perfectas poniendo 9 en cada una. ¿Cuántas filas completas forma?", ans: 6, op: '/', avatar: '🎖️', color: 'var(--naranja)' }
+            { txt: "Un mago plantó un árbol con 45 manzanas rojas. Al día siguiente, usó un hechizo y aparecieron 38 manzanas verdes más. ¿Cuántas manzanas tiene en total?", ans: 83, avatar: '🧙‍♂️', color: 'var(--azul)' },
+            { txt: "En una partida, Lucas recolectó 67 gemas azules en el primer nivel y 55 gemas amarillas en el segundo. ¿Cuántas gemas juntó al terminar?", ans: 122, avatar: '🧝‍♂️', color: 'var(--amarillo)' },
+            { txt: "Sofía infló 92 globos para la escuela. Sopló un viento muy fuerte y se volaron 34 globos. ¿Cuántos globos le quedaron para decorar?", ans: 58, avatar: '🦄', color: 'var(--rosa)' },
+            { txt: "Un cofre pirata tenía 75 monedas de chocolate. Si los tripulantes se comieron 47 chocolates en el viaje, ¿cuántos chocolates quedan?", ans: 28, avatar: '🏴‍☠️', color: 'var(--rojo)' },
+            { txt: "El panadero preparó 6 cajas de donas mágicas. Si cada caja contiene exactamente 8 donas, ¿cuántas donas tiene listas en total?", ans: 48, avatar: '🤖', color: 'var(--naranja)' },
+            { txt: "En un pequeño corral de la granja hay exactamente 9 vacas comiendo pasto. Sin contar personas, ¿cuántas patas de vaca hay en total?", ans: 36, avatar: '🤠', color: 'var(--verde)' },
+            { txt: "Diego tiene un frasco con 42 canicas y quiere repartirlas en partes iguales entre sus 6 mejores amigos. ¿Cuántas canicas recibe cada uno?", ans: 7, avatar: '🧑‍🤝‍🧑', color: 'var(--azul)' },
+            { txt: "Valentina tiene 54 soldados de plástico y quiere acomodarlos en filas perfectas poniendo 9 en cada una. ¿Cuántas filas completas forma?", ans: 6, avatar: '🎖️', color: 'var(--naranja)' },
+            { txt: "Matías compró 4 paquetes de calcomanías. Si cada paquete trae 12 calcomanías individuales, ¿cuántas calcomanías tiene en total para pegar?", ans: 48, avatar: '🐱', color: 'var(--rosa)' },
+            { txt: "Un autobús escolar salió con 60 asientos disponibles. Si en el camino se subieron 37 estudiantes, ¿cuántos asientos vacíos quedaron?", ans: 23, avatar: '🚌', color: 'var(--amarillo)' },
+            { txt: "La maestra guardó 72 lápices nuevos de madera en 8 cajas iguales. ¿Cuántos lápices colocó dentro de cada una de las cajas?", ans: 9, avatar: '🍎', color: 'var(--verde)' },
+            { txt: "Camila recolectó 88 conchas en la playa por la mañana y su hermano juntó 45 más por la tarde. ¿Cuántas conchas tienen entre los dos?", ans: 133, avatar: '🦀', color: 'var(--azul)' },
+            { txt: "Una pizzería horneó 7 pizzas medianas para una fiesta. Si cortaron cada pizza en 8 rebanadas iguales, ¿cuántas rebanadas tienen listas?", ans: 56, avatar: '🍕', color: 'var(--naranja)' },
+            { txt: "El acuario de Julián tenía 81 peces de colores. Si decidió obsequiarle 25 peces a su primo para su pecera, ¿cuántos peces le quedaron?", ans: 56, avatar: '🐠', color: 'var(--rojo)' }
         ];
 
         let ctxAudio = null;
@@ -318,9 +337,9 @@
 
             if (tipo === 'correcto') {
                 osc.type = 'triangle';
-                osc.frequency.setValueAtTime(523.25, ahora); // C5
-                osc.frequency.setValueAtTime(659.25, ahora + 0.08); // E5
-                osc.frequency.setValueAtTime(783.99, ahora + 0.16); // G5
+                osc.frequency.setValueAtTime(523.25, ahora); 
+                osc.frequency.setValueAtTime(659.25, ahora + 0.08); 
+                osc.frequency.setValueAtTime(783.99, ahora + 0.16); 
                 ganancia.gain.setValueAtTime(0.3, ahora);
                 ganancia.gain.exponentialRampToValueAtTime(0.01, ahora + 0.35);
                 osc.start(ahora); osc.stop(ahora + 0.35);
@@ -332,7 +351,6 @@
                 ganancia.gain.exponentialRampToValueAtTime(0.01, ahora + 0.25);
                 osc.start(ahora); osc.stop(ahora + 0.25);
             } else if (tipo === 'final') {
-                // Sonido final envolvente estéreo/armónico
                 [261.63, 329.63, 392.00, 523.25].forEach((frec, idx) => {
                     const o = ctxAudio.createOscillator();
                     const g = ctxAudio.createGain();
@@ -364,45 +382,42 @@
 
         function iniciarJuego() {
             inicializarAudio();
+            if (idBloqueoTimeout) clearTimeout(idBloqueoTimeout);
+            
+            // Inicialización de variables de control matemático
             puntosBase = 0;
             correctasContadas = 0;
             incorrectasContadas = 0;
-            totalPreguntas = 0;
+            indicePreguntaActual = 0;
             
-            // Cada reinicio mezcla los acertijos para que el orden sea totalmente diferente
-            acertijosActuales = [...bancoAcertijos].sort(() => Math.random() - 0.5);
+            // Mezclado aleatorio y selección estricta de 10 acertijos diferentes
+            acertijosActuales = [...bancoAcertijos].sort(() => Math.random() - 0.5).slice(0, maxPreguntas);
             
             actualizarMarcadorPorcentaje();
             cambiarPantalla('pantalla-juego');
-            generarNuevaActividad();
+            cargarAcertijoActual();
         }
 
         function actualizarMarcadorPorcentaje() {
-            // El puntaje se calcula en base estricta de 0 a 100% de manera dinámica
-            let pct = Math.round((puntosBase / (maxPreguntas * 10)) * 100);
+            // Convierte los puntos actuales a formato porcentaje dinámico (0% a 100%)
+            let pct = puntosBase;
             if (pct < 0) pct = 0;
             if (pct > 100) pct = 100;
             document.getElementById('puntos').innerText = pct;
         }
 
-        function generarNuevaActividad() {
-            if (totalPreguntas >= maxPreguntas) {
+        function cargarAcertijoActual() {
+            if (indicePreguntaActual >= maxPreguntas) {
                 finalizarJuego();
                 return;
             }
 
-            const item = acertijosActuales[totalPreguntas];
-            totalPreguntas++;
+            yaFalloPreguntaActual = false; 
+            const item = acertijosActuales[indicePreguntaActual];
             
-            document.getElementById('ronda-actual').innerText = totalPreguntas;
-            tiempoRestante = 30;
-            document.getElementById('tiempo').innerText = tiempoRestante;
-            document.getElementById('cronometro-box').classList.remove('tiempo-alerta');
-
-            document.getElementById('burbuja').innerText = "¡Lee con mucha atención!";
-            document.getElementById('burbuja').style.color = 'var(--oscuro)';
-
-            // Cargar avatar, fondo contextual e imágenes de texto correspondientes
+            document.getElementById('ronda-actual').innerText = (indicePreguntaActual + 1);
+            actualizarMarcadorPorcentaje();
+            
             const avatarElem = document.getElementById('avatar');
             avatarElem.innerText = item.avatar;
             avatarElem.style.backgroundColor = item.color;
@@ -410,7 +425,6 @@
             document.getElementById('bloque-acertijo').innerText = item.txt;
             respuestaCorrecta = item.ans;
 
-            // Generar distractores numéricos lógicos
             let opciones = [respuestaCorrecta];
             while (opciones.length < 4) {
                 let desvio = respuestaCorrecta + (Math.floor(Math.random() * 12) - 6);
@@ -430,6 +444,17 @@
                 contenedorOpciones.appendChild(boton);
             });
 
+            document.getElementById('burbuja').innerText = "¡Lee con mucha atención!";
+            document.getElementById('burbuja').style.color = 'var(--oscuro)';
+            
+            iniciarTemporizador();
+        }
+
+        function iniciarTemporizador() {
+            tiempoRestante = 30;
+            document.getElementById('tiempo').innerText = tiempoRestante;
+            document.getElementById('cronometro-box').classList.remove('tiempo-alerta');
+
             if (temporizador) clearInterval(temporizador);
             temporizador = setInterval(() => {
                 tiempoRestante--;
@@ -441,16 +466,18 @@
 
                 if (tiempoRestante <= 0) {
                     clearInterval(temporizador);
-                    procesarFallo();
+                    procesarFallo(true); 
                 }
             }, 1000);
         }
 
         function verificarRespuesta(seleccionada) {
-            if (temporizador) clearInterval(temporizador);
-            
             if (seleccionada === respuestaCorrecta) {
-                puntosBase += 10; // Suma puntos reales
+                if (idBloqueoTimeout) clearTimeout(idBloqueoTimeout);
+                if (temporizador) clearInterval(temporizador);
+                
+                // Suma 10 puntos fijos por completar con éxito el acertijo
+                puntosBase += 10;
                 correctasContadas++;
                 actualizarMarcadorPorcentaje();
                 
@@ -458,33 +485,57 @@
                 document.getElementById('burbuja').innerText = "CORRECTO";
                 document.getElementById('burbuja').style.color = "var(--verde)";
                 
-                setTimeout(generarNuevaActividad, 1200);
+                bloquearBotones(true);
+                
+                indicePreguntaActual++;
+                setTimeout(cargarAcertijoActual, 1200);
             } else {
-                procesarFallo();
+                procesarFallo(false); 
             }
         }
 
-        function procesarFallo() {
-            if (temporizador) clearInterval(temporizador);
+        function procesarFallo(porTiempo) {
+            if (idBloqueoTimeout) clearTimeout(idBloqueoTimeout);
+            
             incorrectasContadas++;
             
-            // Penalización: Resta puntos al equivocarse disminuyendo el porcentaje final
-            puntosBase = Math.max(0, puntosBase - 5);
+            // PENALIZACIÓN PEDAGÓGICA: Cada intento erróneo o tiempo muerto descuenta 3 puntos netos
+            puntosBase = Math.max(0, puntosBase - 3);
             actualizarMarcadorPorcentaje();
-            
+
             reproducirSonido('incorrecto');
             document.getElementById('burbuja').innerText = "INCORRECTO VUELVE A INTENTARLO";
             document.getElementById('burbuja').style.color = "var(--rojo)";
 
-            setTimeout(generarNuevaActividad, 1400);
+            bloquearBotones(true);
+
+            if (porTiempo) {
+                iniciarTemporizador();
+                bloquearBotones(false);
+            } else {
+                idBloqueoTimeout = setTimeout(() => {
+                    bloquearBotones(false);
+                    document.getElementById('burbuja').innerText = "¡Prueba con otra opción!";
+                    document.getElementById('burbuja').style.color = "var(--oscuro)";
+                }, 1200);
+            }
+        }
+
+        function bloquearBotones(estado) {
+            const botones = document.querySelectorAll('#contenedor-opciones .btn');
+            botones.forEach(b => {
+                b.disabled = estado;
+            });
         }
 
         function finalizarJuego() {
             if (temporizador) clearInterval(temporizador);
+            if (idBloqueoTimeout) clearTimeout(idBloqueoTimeout);
             cambiarPantalla('pantalla-final');
             reproducirSonido('final');
 
-            let notaFinal = Math.round((puntosBase / (maxPreguntas * 10)) * 100);
+            // El puntaje final se extrae directamente del acumulador afectado por los fallos
+            let notaFinal = puntosBase;
             if (notaFinal < 0) notaFinal = 0;
             if (notaFinal > 100) notaFinal = 100;
 
@@ -499,19 +550,19 @@
             if (notaFinal === 100) {
                 medalla.innerText = '👑';
                 titulo.innerText = '¡Perfecto Absoluto! (100%)';
-                desc.innerText = '¡Increíble! Has resuelto todos los acertijos matemáticos con precisión de maestro.';
+                desc.innerText = '¡Increíble! Has resuelto los 10 acertijos matemáticos a la primera sin fallos.';
             } else if (notaFinal >= 80) {
                 medalla.innerText = '🥇';
                 titulo.innerText = `Rango Sobresaliente (${notaFinal}%)`;
-                desc.innerText = '¡Gran trabajo! Tienes una excelente velocidad de cálculo mental.';
+                desc.innerText = '¡Gran trabajo! Resolviste los problemas de forma veloz con muy pocos tropiezos.';
             } else if (notaFinal >= 60) {
                 medalla.innerText = '🥈';
                 titulo.innerText = `Rango Aprobado (${notaFinal}%)`;
-                desc.innerText = '¡Superado! Pasaste la prueba, pero ten cuidado de no confundirte para mantener tu nota alta.';
+                desc.innerText = '¡Superado! Pasaste la prueba, pero los reintentos bajaron tu promedio final.';
             } else {
                 medalla.innerText = '🥉';
                 titulo.innerText = `Rango Insuficiente (${notaFinal}%)`;
-                desc.innerText = '¡Sigue intentándolo! Los errores bajaron tu puntaje. ¡Presiona reiniciar para volver a entrenar!';
+                desc.innerText = '¡No te rindas! Los errores penalizaron tu nota. Presiona reiniciar para mejorar tu récord.';
             }
         }
     </script>
